@@ -1,0 +1,42 @@
+FROM ubuntu:19.04
+
+# Install some deps, lessc and less-plugin-clean-css, and wkhtmltopdf
+RUN set -x; \
+        apt-get update \
+        && apt-get install -y --no-install-recommends \
+            ca-certificates \
+            curl \
+            dirmngr \
+            node-less \
+            python-gevent \
+            python-ldap \
+            python-pip \
+            python-qrcode \
+            python-renderpm \
+            python-vobject \
+            python-watchdog \
+            wkhtmltopdf \
+            postgresql-common \
+            gcc libsasl2-dev python-dev libldap2-dev libssl-dev libpq-dev
+
+# Mount /var/lib/odoo to allow restoring filestore
+VOLUME ["/var/lib/odoo"]
+
+# Install Odoo
+ENV ODOO_VERSION 10
+RUN pip install --upgrade pip
+RUN pip install --upgrade setuptools
+RUN pip install http://nightly.odoo.com/${ODOO_VERSION}.0/nightly/src/odoo_${ODOO_VERSION}.0.latest.tar.gz
+RUN pip install odoo-autodiscover>=2 
+RUN pip install \
+  odoo${ODOO_VERSION}-addon-l10n-it-fatturapa-pec \
+  odoo${ODOO_VERSION}-addon-l10n-it-vat-registries-split-payment \
+  odoo${ODOO_VERSION}-addon-l10n-it-ricevute-bancarie
+
+# Create the odoo user
+RUN useradd --create-home --home-dir /opt/odoo --no-log-init odoo
+USER odoo
+
+EXPOSE 8069 8071
+CMD odoo --db_host db -r odoo -w odoo
+
